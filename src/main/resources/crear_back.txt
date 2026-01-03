@@ -1,0 +1,574 @@
+Primero,Crear un api end point con java 21 y spring boot con las especificaciones de pom.xml
+
+@RestController
+@RequestMapping("/api/clasificado")
+public class ClasificadoController {
+    @PostMapping("/registrar")
+
+el parametro debe ser :
+
+		{
+		  "clasificado": {
+		    "nombreArchivo": null,
+			"clasificador": null,
+			"fecha": null,
+			"observaciones": null,
+			"importe_total": null
+		  },
+		  "clasificado_calidad": {
+			"ROYAL": { "pesos": [], "total_kg": null },
+			"BL-B": { "pesos": [], "total_kg": null },
+			"BL-X": { "pesos": [], "total_kg": null },
+			"FS-B": { "pesos": [], "total_kg": null },
+			"FS-X": { "pesos": [], "total_kg": null },
+			"HZ-B": { "pesos": [], "total_kg": null },
+			"HZ-X": { "pesos": [], "total_kg": null },
+			"AG": { "pesos": [], "total_kg": null },
+			"STD": { "pesos": [], "total_kg": null },
+			"SURI-BL": { "pesos": [], "total_kg": null },
+			"SURI-FS": { "pesos": [], "total_kg": null },
+			"SURI-HZ": { "pesos": [], "total_kg": null }
+		  },
+		  "clasificado_detalle": {
+			"ROYAL": {
+			  "componentes": ["ROYAL"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"BL": {
+			  "componentes": ["BL-B", "BL-X"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"FS": {
+			  "componentes": ["FS-B", "FS-X"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"HZ": {
+			  "componentes": ["HZ-B", "HZ-X", "AG"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"STD": {
+			  "componentes": ["STD"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"SURI": {
+			  "componentes": ["SURI-BL", "SURI-FS"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			},
+			"SURI-HZ": {
+			  "componentes": ["SURI-HZ"],
+			  "total_kg": null,
+			  "precio_kg": null,
+			  "sub_total_importe": null
+			}
+		  }
+		}
+
+
+Segundo, La equivalencia con la base de datos:
+ 
+
+		{
+		  "clasificado": {
+			"nombreArchivo": null CLASIFICADO.ID_CLASIFICADO,
+			"clasificador": null CLASIFICADO.ID_CLASIFICADOR,
+			"fecha": null  CLASIFICADO.FECHA,
+			"observaciones": null,
+			"importe_total": CLASIFICADO.IMPORTE_TOTAL
+		  },
+		  "clasificado_calidad": {
+			"BL-B": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG },
+			"BL-X": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"FS-B": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"FS-X": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"HZ-B": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"HZ-X": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"AG": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"STD": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"SURI-BL": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"SURI-FS": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  },
+			"SURI-HZ": CLASIFICADO_PESO.ID_CALIDAD y CLASIFICADO_RESUMEN.ID_CALIDAD   { "pesos": [CLASIFICADO_PESO.PESO_KG], "total_kg": null CLASIFICADO_RESUMEN.TOTAL_KG  }
+		  },
+		  "clasificado_detalle": {
+			"ROYAL":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["ROYAL"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"BL":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["BL-B", "BL-X"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"FS":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["FS-B", "FS-X"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"HZ":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["HZ-B", "HZ-X", "AG"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"STD":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["STD"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"SURI":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["SURI-BL", "SURI-FS"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			},
+			"SURI-HZ":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+			  "componentes": ["SURI-HZ"],
+			  "total_kg": null CLASIFICADO_DETALLE.TOTAL_KG,
+			  "precio_kg": null CLASIFICADO_DETALLE.PRECIO_KG,
+			  "sub_total_importe": null CLASIFICADO_DETALLE.SUBTOTAL_IMPORTE
+			}
+		  }
+		}
+
+Tercero, realizar para validar  guardar errores CLASIFICADO_ERROR_CARGA  
+
+		1. La suma de  pesos de clasificado_calidad.pesos debe ser igual a clasificado_calidad.total_kg 
+				
+				CLASIFICADO_ERROR_CARGA
+					ID_CLASIFICADO=CLASIFICADO.ID_CLASIFICADO
+					CODIGO='ERROR_PESO'
+					ERROR_CARGA=json con datos de la calidad con error : "clasificado_calidad": { "ROYAL": { "pesos": [], "total_kg": null },
+					
+		2. Clasificado_calidad.total_kg debe ser igual a clasificado_detalle.total_kg
+
+				CLASIFICADO_ERROR_CARGA
+					ID_CLASIFICADO=CLASIFICADO.ID_CLASIFICADO
+					CODIGO='ERROR_TOTAL_KG'
+					ERROR_CARGA=json con datos de la calidad con error : "clasificado_calidad": {  "total_kg": null }, Y   "clasificado_detalle": {
+								"ROYAL":    {
+								  "componentes": ["ROYAL"],
+								  "total_kg": null ,
+				
+		3. La suma de  pesos de clasificado_detalle.total_kg * clasificado_detalle.precio_kg debe ser igual a clasificado_detalle.sub_total_importe		
+
+				CLASIFICADO_ERROR_CARGA
+					ID_CLASIFICADO=CLASIFICADO.ID_CLASIFICADO
+					CODIGO='ERROR_IMPORTE'
+					ERROR_CARGA=json con datos de la calidad con error :  		  "clasificado_detalle": {
+					"ROYAL":     {
+					  "componentes": ["ROYAL"],
+					  "total_kg": null  ,
+					  "precio_kg": null  ,
+					  "sub_total_importe": null 
+
+
+		4. La suma de  pesos de clasificado_detalle.sub_total_importe debe ser igual a clasificado.importe_total
+				
+				CLASIFICADO_ERROR_CARGA
+					ID_CLASIFICADO=CLASIFICADO.ID_CLASIFICADO
+					CODIGO='ERROR_IMPORTE_TOTAL'
+					ERROR_CARGA=json con datos de la calidad con error : 		  "clasificado_detalle": {
+					"ROYAL":  CLASIFICADO_DETALLE.ID_AGRUPACION  {
+					  "sub_total_importe": null  
+					  
+					 Y   
+				  "clasificado": {
+					"nombreArchivo": null ,
+					"importe_total":  
+				  },
+		  
+		
+
+
+Cuarto, Tablas mysql:
+
+USE jm_alpaca_clasificado;
+
+			/* ==========================================================
+			   YOJO LANAS - MODELO CLASIFICADO (MySQL)
+			   - Sin auditoría
+			   - SECCION y AGRUPACION como catálogos
+			   - CALIDAD mapea SECCION + AGRUPACION
+			   - CLASIFICADO_PESO: pesos[] por calidad (N filas)
+			   - CLASIFICADO_RESUMEN: total_kg por calidad (1 fila)
+			   - CLASIFICADO_DETALLE: totales por agrupación (1 fila)
+			   ========================================================== */
+
+			SET NAMES utf8mb4;
+
+			-- Si tu MySQL no tiene cargadas las tablas de zona horaria, 'America/Lima' puede fallar.
+			-- En ese caso usa '-05:00'.
+			 SET time_zone = 'America/Lima';
+			-- SET time_zone = '-05:00';
+
+			-- ==========================================================
+			-- LIMPIEZA (eliminar si existen)  -- (incluye CLASIFICADOR)
+			-- ==========================================================
+			DROP TABLE IF EXISTS CLASIFICADO_DETALLE;
+			DROP TABLE IF EXISTS CLASIFICADO_RESUMEN;
+			DROP TABLE IF EXISTS CLASIFICADO_PESO;
+			DROP TABLE IF EXISTS CLASIFICADO_ERROR_CARGA;
+			DROP TABLE IF EXISTS CLASIFICADO;
+			DROP TABLE IF EXISTS CLASIFICADOR;
+			DROP TABLE IF EXISTS CALIDAD;
+			DROP TABLE IF EXISTS AGRUPACION;
+			DROP TABLE IF EXISTS SECCION;
+
+			-- ==========================================================
+			-- CATALOGO: SECCION
+			-- ==========================================================
+			CREATE TABLE SECCION (
+			  ID_SECCION VARCHAR(20) NOT NULL,
+			  CONSTRAINT PK_SECCION PRIMARY KEY (ID_SECCION)
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			INSERT INTO SECCION (ID_SECCION) VALUES
+			('HUACAYO'),
+			('SURI');
+
+			-- ==========================================================
+			-- CATALOGO: AGRUPACION (DETALLE)
+			-- ==========================================================
+			CREATE TABLE AGRUPACION (
+			  ID_AGRUPACION VARCHAR(30) NOT NULL,
+			  CONSTRAINT PK_AGRUPACION PRIMARY KEY (ID_AGRUPACION)
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			INSERT INTO AGRUPACION (ID_AGRUPACION) VALUES
+			('ROYAL'),
+			('BL'),
+			('FS'),
+			('HZ'),
+			('STD'),
+			('SURI'),
+			('SURI-HZ'),
+			('SURI-STD');
+
+			-- ==========================================================
+			-- CATALOGO: CALIDAD (relaciona SECCION + AGRUPACION)
+			-- ==========================================================
+			CREATE TABLE CALIDAD (
+			  ID_CALIDAD    VARCHAR(30) NOT NULL,
+			  ID_SECCION    VARCHAR(20) NOT NULL,
+			  ID_AGRUPACION VARCHAR(30) NOT NULL,
+
+			  CONSTRAINT PK_CALIDAD PRIMARY KEY (ID_CALIDAD),
+
+			  CONSTRAINT FK_CALIDAD_SECCION
+				FOREIGN KEY (ID_SECCION) REFERENCES SECCION(ID_SECCION),
+
+			  CONSTRAINT FK_CALIDAD_AGRUPACION
+				FOREIGN KEY (ID_AGRUPACION) REFERENCES AGRUPACION(ID_AGRUPACION)
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			INSERT INTO CALIDAD (ID_CALIDAD, ID_SECCION, ID_AGRUPACION) VALUES
+			-- HUACAYO
+			('ROYAL', 'HUACAYO', 'ROYAL'),
+			('BL-B',  'HUACAYO', 'BL'),
+			('BL-X',  'HUACAYO', 'BL'),
+			('FS-B',  'HUACAYO', 'FS'),
+			('FS-X',  'HUACAYO', 'FS'),
+			('HZ-B',  'HUACAYO', 'HZ'),
+			('HZ-X',  'HUACAYO', 'HZ'),
+			('AG',    'HUACAYO', 'HZ'),
+			('STD',   'HUACAYO', 'STD'),
+			-- SURI
+			('SURI-BL',  'SURI', 'SURI'),
+			('SURI-FS',  'SURI', 'SURI'),
+			('SURI-HZ',  'SURI', 'SURI-HZ'),
+			('SURI-STD', 'SURI', 'SURI-STD');
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADOR
+			-- ==========================================================
+			CREATE TABLE CLASIFICADOR (
+			  ID_CLASIFICADOR VARCHAR(60) NOT NULL,
+			  CONSTRAINT PK_CLASIFICADOR PRIMARY KEY (ID_CLASIFICADOR)
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			INSERT INTO CLASIFICADOR (ID_CLASIFICADOR) VALUES
+			('ROGER'),
+			('YOLA'),
+			('ISIDORA');
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADO (cabecera)
+			-- ==========================================================
+			CREATE TABLE CLASIFICADO (
+			  ID_CLASIFICADO  VARCHAR(20) NOT NULL,
+			  ID_CLASIFICADOR VARCHAR(60) NOT NULL,
+			  FECHA           DATE NULL,
+			  IMPORTE_TOTAL   DECIMAL(14,2) NULL,
+			  OBSERVACIONES   VARCHAR(500) NULL,
+
+			  CONSTRAINT PK_CLASIFICADO PRIMARY KEY (ID_CLASIFICADO),
+
+			  CONSTRAINT FK_CP_ID_CLASIFICADOR
+				FOREIGN KEY (ID_CLASIFICADOR)
+				REFERENCES CLASIFICADOR(ID_CLASIFICADOR)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADO_PESO (pesos[] por calidad)
+			-- ==========================================================
+			CREATE TABLE CLASIFICADO_PESO (
+			  ID_PESO        BIGINT NOT NULL AUTO_INCREMENT,
+			  ID_CLASIFICADO VARCHAR(20) NOT NULL,
+			  ID_CALIDAD     VARCHAR(30) NOT NULL,
+			  PESO_KG        DECIMAL(10,2) NOT NULL,
+
+			  CONSTRAINT PK_CLASIFICADO_PESO PRIMARY KEY (ID_PESO),
+
+			  CONSTRAINT FK_CP_CLASIFICADO
+				FOREIGN KEY (ID_CLASIFICADO)
+				REFERENCES CLASIFICADO(ID_CLASIFICADO)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT,
+
+			  CONSTRAINT FK_CP_CALIDAD
+				FOREIGN KEY (ID_CALIDAD)
+				REFERENCES CALIDAD(ID_CALIDAD)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADO_RESUMEN (total_kg por calidad)
+			-- ==========================================================
+			CREATE TABLE CLASIFICADO_RESUMEN (
+			  ID_CLASIFICADO VARCHAR(20) NOT NULL,
+			  ID_CALIDAD     VARCHAR(30) NOT NULL,
+			  TOTAL_KG       DECIMAL(10,2) NOT NULL,
+
+			  CONSTRAINT PK_CLASIFICADO_RESUMEN PRIMARY KEY (ID_CLASIFICADO, ID_CALIDAD),
+
+			  CONSTRAINT FK_CR_CLASIFICADO
+				FOREIGN KEY (ID_CLASIFICADO)
+				REFERENCES CLASIFICADO(ID_CLASIFICADO)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT,
+
+			  CONSTRAINT FK_CR_CALIDAD
+				FOREIGN KEY (ID_CALIDAD)
+				REFERENCES CALIDAD(ID_CALIDAD)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADO_DETALLE (totales por agrupación)
+			-- ==========================================================
+			CREATE TABLE CLASIFICADO_DETALLE (
+			  ID_CLASIFICADO   VARCHAR(20) NOT NULL,
+			  ID_AGRUPACION    VARCHAR(30) NOT NULL,
+			  TOTAL_KG         DECIMAL(10,2) NOT NULL,
+			  PRECIO_KG        DECIMAL(10,2) NOT NULL,
+			  SUBTOTAL_IMPORTE DECIMAL(12,2) NOT NULL,
+
+			  CONSTRAINT PK_CLASIFICADO_DETALLE PRIMARY KEY (ID_CLASIFICADO, ID_AGRUPACION),
+
+			  CONSTRAINT FK_CD_CLASIFICADO
+				FOREIGN KEY (ID_CLASIFICADO)
+				REFERENCES CLASIFICADO(ID_CLASIFICADO)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT,
+
+			  CONSTRAINT FK_CD_AGRUPACION
+				FOREIGN KEY (ID_AGRUPACION)
+				REFERENCES AGRUPACION(ID_AGRUPACION)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			-- ==========================================================
+			-- TABLA: CLASIFICADO_ERROR_CARGA
+			-- ==========================================================
+			CREATE TABLE CLASIFICADO_ERROR_CARGA (
+			  ID_ERROR_CARGA  BIGINT NOT NULL AUTO_INCREMENT,
+			  ID_CLASIFICADO  VARCHAR(20) NOT NULL,
+			  CODIGO          VARCHAR(20) NOT NULL,
+			  ERROR_CARGA     VARCHAR(500) NOT NULL,
+
+			  CONSTRAINT PK_CLASIFICADO_ERROR_CARGA PRIMARY KEY (ID_ERROR_CARGA),
+
+			  CONSTRAINT FK_CEC_CLASIFICADO
+				FOREIGN KEY (ID_CLASIFICADO)
+				REFERENCES CLASIFICADO(ID_CLASIFICADO)
+				ON DELETE RESTRICT
+				ON UPDATE RESTRICT
+			) ENGINE=InnoDB
+			DEFAULT CHARSET=utf8mb4
+			COLLATE=utf8mb4_spanish_ci;
+
+			-- ==========================================================
+			-- INDICES RECOMENDADOS
+			-- ==========================================================
+			CREATE INDEX IX_CALIDAD_SECCION   ON CALIDAD (ID_SECCION);
+			CREATE INDEX IX_CALIDAD_AGRUP     ON CALIDAD (ID_AGRUPACION);
+
+			CREATE INDEX IX_CP_CLASIF_CALIDAD ON CLASIFICADO_PESO (ID_CLASIFICADO, ID_CALIDAD);
+			CREATE INDEX IX_CR_ID_CALIDAD     ON CLASIFICADO_RESUMEN (ID_CALIDAD);
+			CREATE INDEX IX_CD_ID_AGRUPACION  ON CLASIFICADO_DETALLE (ID_AGRUPACION);
+
+Cuarto, Archivo properties : application.properties
+
+spring.application.name=jm_alpaca_n8n_clasificado
+
+# Server Configuration
+server.port=8083
+
+# MySQL Configuration
+mysql.host=206.81.5.2
+mysql.port=3307
+mysql.database=jm_alpaca_clasificado
+mysql.username=root
+mysql.password=Admin#2025
+
+# Connection Pool Configuration
+mysql.pool.max-size=10
+mysql.pool.max-wait-queue-size=100
+mysql.connection.timeout=30000
+mysql.idle.timeout=600000
+
+
+Quinto, Archivo : pom.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.0</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.pe</groupId>
+	<artifactId>jm_alpaca_n8n_clasificado</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>jm_alpaca_n8n_clasificado</name>
+	<description>Demo project for Spring Boot</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>21</java.version>
+		<vertx.version>4.5.1</vertx.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Vert.x Core -->
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-core</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+
+		<!-- Vert.x MySQL Reactive Client -->
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-mysql-client</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+
+		<!-- Vert.x SQL Client -->
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-sql-client</artifactId>
+			<version>${vertx.version}</version>
+		</dependency>
+
+		<!-- Lombok para reducir boilerplate -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Jackson para JSON -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
