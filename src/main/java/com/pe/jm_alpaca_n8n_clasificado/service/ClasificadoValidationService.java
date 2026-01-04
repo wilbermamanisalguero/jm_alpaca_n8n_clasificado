@@ -232,6 +232,24 @@ public class ClasificadoValidationService {
     private List<ValidationError> validateImporteTotal(ClasificadoDTO clasificado, ClasificadoDetalleDTO detalle) {
         List<ValidationError> errors = new ArrayList<>();
 
+        // Validar que nombreArchivo sea obligatorio
+        if (clasificado.getNombreArchivo() == null || clasificado.getNombreArchivo().trim().isEmpty()) {
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("clasificado", Map.of("error", "El campo nombreArchivo es obligatorio"));
+
+            try {
+                errors.add(ValidationError.builder()
+                        .codigo("ERROR_NOMBRE_ARCHIVO_REQUERIDO")
+                        .errorCarga(objectMapper.writeValueAsString(errorData))
+                        .build());
+            } catch (JsonProcessingException e) {
+                errors.add(ValidationError.builder()
+                        .codigo("ERROR_NOMBRE_ARCHIVO_REQUERIDO")
+                        .errorCarga("El campo nombreArchivo es obligatorio")
+                        .build());
+            }
+        }
+
         if (clasificado.getImporteTotal() != null) {
             BigDecimal sumaSubtotales = BigDecimal.ZERO;
 
@@ -264,33 +282,38 @@ public class ClasificadoValidationService {
                 Map<String, Object> errorData = new HashMap<>();
 
                 Map<String, Object> detalleMap = new HashMap<>();
-                if (detalle.getRoyal() != null) {
+                if (detalle.getRoyal() != null && detalle.getRoyal().getSubTotalImporte() != null) {
                     detalleMap.put("ROYAL", Map.of("sub_total_importe", detalle.getRoyal().getSubTotalImporte()));
                 }
-                if (detalle.getBl() != null) {
+                if (detalle.getBl() != null && detalle.getBl().getSubTotalImporte() != null) {
                     detalleMap.put("BL", Map.of("sub_total_importe", detalle.getBl().getSubTotalImporte()));
                 }
-                if (detalle.getFs() != null) {
+                if (detalle.getFs() != null && detalle.getFs().getSubTotalImporte() != null) {
                     detalleMap.put("FS", Map.of("sub_total_importe", detalle.getFs().getSubTotalImporte()));
                 }
-                if (detalle.getHz() != null) {
+                if (detalle.getHz() != null && detalle.getHz().getSubTotalImporte() != null) {
                     detalleMap.put("HZ", Map.of("sub_total_importe", detalle.getHz().getSubTotalImporte()));
                 }
-                if (detalle.getStd() != null) {
+                if (detalle.getStd() != null && detalle.getStd().getSubTotalImporte() != null) {
                     detalleMap.put("STD", Map.of("sub_total_importe", detalle.getStd().getSubTotalImporte()));
                 }
-                if (detalle.getSuri() != null) {
+                if (detalle.getSuri() != null && detalle.getSuri().getSubTotalImporte() != null) {
                     detalleMap.put("SURI", Map.of("sub_total_importe", detalle.getSuri().getSubTotalImporte()));
                 }
-                if (detalle.getSuriHz() != null) {
+                if (detalle.getSuriHz() != null && detalle.getSuriHz().getSubTotalImporte() != null) {
                     detalleMap.put("SURI-HZ", Map.of("sub_total_importe", detalle.getSuriHz().getSubTotalImporte()));
                 }
 
                 errorData.put("clasificado_detalle", detalleMap);
-                errorData.put("clasificado", Map.of(
-                    "nombreArchivo", clasificado.getNombreArchivo(),
-                    "importe_total", clasificado.getImporteTotal()
-                ));
+
+                Map<String, Object> clasificadoMap = new HashMap<>();
+                if (clasificado.getNombreArchivo() != null) {
+                    clasificadoMap.put("nombreArchivo", clasificado.getNombreArchivo());
+                }
+                if (clasificado.getImporteTotal() != null) {
+                    clasificadoMap.put("importe_total", clasificado.getImporteTotal());
+                }
+                errorData.put("clasificado", clasificadoMap);
 
                 try {
                     errors.add(ValidationError.builder()
