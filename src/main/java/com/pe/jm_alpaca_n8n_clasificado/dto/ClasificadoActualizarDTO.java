@@ -13,22 +13,23 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClasificadoDTO {
+public class ClasificadoActualizarDTO {
 
-    @JsonProperty("nombreArchivo")
-    private String nombreArchivo;
+    @JsonProperty("idClasificado")
+    @NotNull(message = "El idClasificado es requerido")
+    private String idClasificado;
 
-    @JsonProperty("clasificador")
+    @JsonProperty("idClasificador")
     @NotNull(message = "El clasificador es requerido")
-    private String clasificador;
+    private String idClasificador;
 
     @JsonProperty("fecha")
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate fecha;
 
+    @JsonProperty("importeTotal")
+    private BigDecimal importeTotal;
+
     @JsonProperty("observaciones")
     private String observaciones;
-
-    @JsonProperty("importe_total")
-    private BigDecimal importeTotal;
 }

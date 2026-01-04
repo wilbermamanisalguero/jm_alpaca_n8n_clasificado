@@ -308,4 +308,241 @@ public class ClasificadoValidationService {
 
         return errors;
     }
+
+    public List<ActualizacionValidationError> validateActualizacion(ClasificadoActualizarRequestDTO request) {
+        List<ActualizacionValidationError> errors = new ArrayList<>();
+
+        // Agrupar pesos por calidad
+        Map<String, List<ClasificadoPesoActualizarDTO>> pesosPorCalidad = new HashMap<>();
+        if (request.getClasificadoPeso() != null) {
+            for (ClasificadoPesoActualizarDTO peso : request.getClasificadoPeso()) {
+                pesosPorCalidad.computeIfAbsent(peso.getIdCalidad(), k -> new ArrayList<>()).add(peso);
+            }
+        }
+
+        // Agrupar resumen por calidad
+        Map<String, ClasificadoResumenActualizarDTO> resumenPorCalidad = new HashMap<>();
+        if (request.getClasificadoResumen() != null) {
+            for (ClasificadoResumenActualizarDTO resumen : request.getClasificadoResumen()) {
+                resumenPorCalidad.put(resumen.getIdCalidad(), resumen);
+            }
+        }
+
+        // Agrupar detalle por agrupación
+        Map<String, ClasificadoDetalleActualizarDTO> detallePorAgrupacion = new HashMap<>();
+        if (request.getClasificadoDetalle() != null) {
+            for (ClasificadoDetalleActualizarDTO detalle : request.getClasificadoDetalle()) {
+                detallePorAgrupacion.put(detalle.getIdAgrupacion(), detalle);
+            }
+        }
+
+        // Validación 1: La suma de pesos debe ser igual a total_kg por calidad
+        errors.addAll(validateActualizacionPesosVsTotalKg(pesosPorCalidad, resumenPorCalidad));
+
+        // Validación 2: total_kg de calidad debe ser igual a total_kg en detalle (por agrupación)
+        errors.addAll(validateActualizacionCalidadVsDetalle(resumenPorCalidad, detallePorAgrupacion));
+
+        // Validación 3: total_kg * precio_kg debe ser igual a sub_total_importe
+        errors.addAll(validateActualizacionSubtotalImporte(detallePorAgrupacion));
+
+        // Validación 4: suma de sub_total_importe debe ser igual a importe_total
+        errors.addAll(validateActualizacionImporteTotal(request.getClasificado(), detallePorAgrupacion));
+
+        return errors;
+    }
+
+    private List<ActualizacionValidationError> validateActualizacionPesosVsTotalKg(
+            Map<String, List<ClasificadoPesoActualizarDTO>> pesosPorCalidad,
+            Map<String, ClasificadoResumenActualizarDTO> resumenPorCalidad) {
+        List<ActualizacionValidationError> errors = new ArrayList<>();
+
+        for (Map.Entry<String, List<ClasificadoPesoActualizarDTO>> entry : pesosPorCalidad.entrySet()) {
+            String idCalidad = entry.getKey();
+            List<ClasificadoPesoActualizarDTO> pesos = entry.getValue();
+
+            ClasificadoResumenActualizarDTO resumen = resumenPorCalidad.get(idCalidad);
+
+            if (resumen != null && resumen.getTotalKg() != null) {
+                BigDecimal sumaPesos = pesos.stream()
+                        .map(ClasificadoPesoActualizarDTO::getPesoKg)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                BigDecimal totalKg = resumen.getTotalKg().setScale(2, RoundingMode.HALF_UP);
+
+                if (sumaPesos.compareTo(totalKg) != 0) {
+                    Map<String, Object> errorData = new HashMap<>();
+                    Map<String, Object> calidadData = new HashMap<>();
+                    calidadData.put("pesos", pesos.stream().map(ClasificadoPesoActualizarDTO::getPesoKg).toList());
+                    calidadData.put("total_kg", resumen.getTotalKg());
+                    errorData.put(idCalidad, calidadData);
+
+                    try {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_PESO")
+                                .errorCarga(objectMapper.writeValueAsString(errorData))
+                                .build());
+                    } catch (JsonProcessingException e) {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_PESO")
+                                .errorCarga("Error al serializar: " + idCalidad)
+                                .build());
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private List<ActualizacionValidationError> validateActualizacionCalidadVsDetalle(
+            Map<String, ClasificadoResumenActualizarDTO> resumenPorCalidad,
+            Map<String, ClasificadoDetalleActualizarDTO> detallePorAgrupacion) {
+        List<ActualizacionValidationError> errors = new ArrayList<>();
+
+        // Mapeo de agrupaciones y sus calidades componentes
+        Map<String, List<String>> agrupacionCalidades = Map.of(
+            "ROYAL", List.of("ROYAL"),
+            "BL", List.of("BL-B", "BL-X"),
+            "FS", List.of("FS-B", "FS-X"),
+            "HZ", List.of("HZ-B", "HZ-X", "AG"),
+            "STD", List.of("STD"),
+            "SURI", List.of("SURI-BL", "SURI-FS"),
+            "SURI-HZ", List.of("SURI-HZ")
+        );
+
+        for (Map.Entry<String, List<String>> entry : agrupacionCalidades.entrySet()) {
+            String agrupacion = entry.getKey();
+            List<String> calidades = entry.getValue();
+
+            ClasificadoDetalleActualizarDTO detalle = detallePorAgrupacion.get(agrupacion);
+
+            if (detalle != null && detalle.getTotalKg() != null) {
+                BigDecimal sumaCalidad = BigDecimal.ZERO;
+                for (String calidad : calidades) {
+                    ClasificadoResumenActualizarDTO resumen = resumenPorCalidad.get(calidad);
+                    if (resumen != null && resumen.getTotalKg() != null) {
+                        sumaCalidad = sumaCalidad.add(resumen.getTotalKg());
+                    }
+                }
+
+                sumaCalidad = sumaCalidad.setScale(2, RoundingMode.HALF_UP);
+                BigDecimal totalDetalle = detalle.getTotalKg().setScale(2, RoundingMode.HALF_UP);
+
+                if (sumaCalidad.compareTo(totalDetalle) != 0) {
+                    Map<String, Object> errorData = new HashMap<>();
+                    errorData.put("clasificado_calidad", Map.of("total_kg", sumaCalidad));
+                    errorData.put("clasificado_detalle", Map.of(
+                        agrupacion, Map.of(
+                            "componentes", calidades,
+                            "total_kg", detalle.getTotalKg()
+                        )
+                    ));
+
+                    try {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_TOTAL_KG")
+                                .errorCarga(objectMapper.writeValueAsString(errorData))
+                                .build());
+                    } catch (JsonProcessingException e) {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_TOTAL_KG")
+                                .errorCarga("Error al serializar: " + agrupacion)
+                                .build());
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private List<ActualizacionValidationError> validateActualizacionSubtotalImporte(
+            Map<String, ClasificadoDetalleActualizarDTO> detallePorAgrupacion) {
+        List<ActualizacionValidationError> errors = new ArrayList<>();
+
+        for (Map.Entry<String, ClasificadoDetalleActualizarDTO> entry : detallePorAgrupacion.entrySet()) {
+            String agrupacion = entry.getKey();
+            ClasificadoDetalleActualizarDTO detalle = entry.getValue();
+
+            if (detalle.getTotalKg() != null && detalle.getPrecioKg() != null && detalle.getSubtotalImporte() != null) {
+                BigDecimal calculado = detalle.getTotalKg()
+                        .multiply(detalle.getPrecioKg())
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                BigDecimal subTotal = detalle.getSubtotalImporte().setScale(2, RoundingMode.HALF_UP);
+
+                if (calculado.compareTo(subTotal) != 0) {
+                    Map<String, Object> errorData = new HashMap<>();
+                    errorData.put("clasificado_detalle", Map.of(
+                        agrupacion, Map.of(
+                            "total_kg", detalle.getTotalKg(),
+                            "precio_kg", detalle.getPrecioKg(),
+                            "sub_total_importe", detalle.getSubtotalImporte()
+                        )
+                    ));
+
+                    try {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_IMPORTE")
+                                .errorCarga(objectMapper.writeValueAsString(errorData))
+                                .build());
+                    } catch (JsonProcessingException e) {
+                        errors.add(ActualizacionValidationError.builder()
+                                .codigo("ERROR_IMPORTE")
+                                .errorCarga("Error al serializar: " + agrupacion)
+                                .build());
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private List<ActualizacionValidationError> validateActualizacionImporteTotal(
+            ClasificadoActualizarDTO clasificado,
+            Map<String, ClasificadoDetalleActualizarDTO> detallePorAgrupacion) {
+        List<ActualizacionValidationError> errors = new ArrayList<>();
+
+        if (clasificado.getImporteTotal() != null) {
+            BigDecimal sumaSubtotales = detallePorAgrupacion.values().stream()
+                    .filter(d -> d.getSubtotalImporte() != null)
+                    .map(ClasificadoDetalleActualizarDTO::getSubtotalImporte)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            BigDecimal importeTotal = clasificado.getImporteTotal().setScale(2, RoundingMode.HALF_UP);
+
+            if (sumaSubtotales.compareTo(importeTotal) != 0) {
+                Map<String, Object> errorData = new HashMap<>();
+
+                Map<String, Object> detalleMap = new HashMap<>();
+                for (Map.Entry<String, ClasificadoDetalleActualizarDTO> entry : detallePorAgrupacion.entrySet()) {
+                    if (entry.getValue().getSubtotalImporte() != null) {
+                        detalleMap.put(entry.getKey(), Map.of("sub_total_importe", entry.getValue().getSubtotalImporte()));
+                    }
+                }
+                errorData.put("clasificado_detalle", detalleMap);
+                errorData.put("clasificado", Map.of(
+                    "idClasificado", clasificado.getIdClasificado(),
+                    "importe_total", clasificado.getImporteTotal()
+                ));
+
+                try {
+                    errors.add(ActualizacionValidationError.builder()
+                            .codigo("ERROR_IMPORTE_TOTAL")
+                            .errorCarga(objectMapper.writeValueAsString(errorData))
+                            .build());
+                } catch (JsonProcessingException e) {
+                    errors.add(ActualizacionValidationError.builder()
+                            .codigo("ERROR_IMPORTE_TOTAL")
+                            .errorCarga("Error al serializar importe total")
+                            .build());
+                }
+            }
+        }
+
+        return errors;
+    }
 }

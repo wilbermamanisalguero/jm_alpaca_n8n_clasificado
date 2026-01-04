@@ -163,4 +163,194 @@ public class ClasificadoService {
         }
         return Future.succeededFuture();
     }
+
+    public Future<Map<String, Object>> consultarClasificado(String idClasificado) {
+        return repository.getClasificadoById(idClasificado)
+                .compose(clasificado -> {
+                    if (clasificado == null) {
+                        return Future.succeededFuture(Map.of(
+                                "success", false,
+                                "message", "Clasificado no encontrado"
+                        ));
+                    }
+
+                    return CompositeFuture.all(
+                            repository.getPesosByClasificadoId(idClasificado),
+                            repository.getResumenByClasificadoId(idClasificado),
+                            repository.getDetalleByClasificadoId(idClasificado),
+                            repository.getErrorsByClasificadoId(idClasificado)
+                    ).map(compositeFuture -> {
+                        List<ClasificadoPeso> pesos = compositeFuture.resultAt(0);
+                        List<ClasificadoResumen> resumenes = compositeFuture.resultAt(1);
+                        List<ClasificadoDetalle> detalles = compositeFuture.resultAt(2);
+                        List<ClasificadoErrorCarga> errores = compositeFuture.resultAt(3);
+
+                        ClasificadoResponseDTO clasificadoDTO = ClasificadoResponseDTO.builder()
+                                .idClasificado(clasificado.getIdClasificado())
+                                .idClasificador(clasificado.getIdClasificador())
+                                .fecha(clasificado.getFecha())
+                                .importeTotal(clasificado.getImporteTotal())
+                                .observaciones(clasificado.getObservaciones())
+                                .build();
+
+                        List<ClasificadoPesoResponseDTO> pesosDTO = pesos.stream()
+                                .map(p -> ClasificadoPesoResponseDTO.builder()
+                                        .idPeso(p.getIdPeso())
+                                        .idCalidad(p.getIdCalidad())
+                                        .pesoKg(p.getPesoKg())
+                                        .build())
+                                .toList();
+
+                        List<ClasificadoResumenResponseDTO> resumenesDTO = resumenes.stream()
+                                .map(r -> ClasificadoResumenResponseDTO.builder()
+                                        .idCalidad(r.getIdCalidad())
+                                        .totalKg(r.getTotalKg())
+                                        .build())
+                                .toList();
+
+                        List<ClasificadoDetalleResponseDTO> detallesDTO = detalles.stream()
+                                .map(d -> ClasificadoDetalleResponseDTO.builder()
+                                        .idAgrupacion(d.getIdAgrupacion())
+                                        .totalKg(d.getTotalKg())
+                                        .precioKg(d.getPrecioKg())
+                                        .subtotalImporte(d.getSubtotalImporte())
+                                        .build())
+                                .toList();
+
+                        List<ClasificadoErrorCargaResponseDTO> erroresDTO = errores.stream()
+                                .map(e -> ClasificadoErrorCargaResponseDTO.builder()
+                                        .idErrorCarga(e.getIdErrorCarga())
+                                        .codigo(e.getCodigo())
+                                        .errorCarga(e.getErrorCarga())
+                                        .build())
+                                .toList();
+
+                        ConsultaClasificadoResponseDTO responseDTO = ConsultaClasificadoResponseDTO.builder()
+                                .clasificado(clasificadoDTO)
+                                .clasificadoPeso(pesosDTO)
+                                .clasificadoResumen(resumenesDTO)
+                                .clasificadoDetalle(detallesDTO)
+                                .clasificadoErrorCarga(erroresDTO)
+                                .build();
+
+                        return Map.of(
+                                "success", true,
+                                "data", responseDTO
+                        );
+                    });
+                });
+    }
+
+    public Future<Map<String, Object>> actualizarClasificado(ClasificadoActualizarRequestDTO request) {
+        // Validar datos
+        List<ActualizacionValidationError> validationErrors = validationService.validateActualizacion(request);
+
+        if (!validationErrors.isEmpty()) {
+            return Future.succeededFuture(Map.of(
+                    "success", false,
+                    "message", "Error de validación",
+                    "errors", validationErrors
+            ));
+        }
+
+        String idClasificado = request.getClasificado().getIdClasificado();
+
+        // Actualizar clasificado
+        Clasificado clasificado = Clasificado.builder()
+                .idClasificado(idClasificado)
+                .idClasificador(request.getClasificado().getIdClasificador())
+                .fecha(request.getClasificado().getFecha())
+                .importeTotal(request.getClasificado().getImporteTotal())
+                .observaciones(request.getClasificado().getObservaciones())
+                .build();
+
+        return repository.updateClasificado(clasificado)
+                .compose(v -> {
+                    // Actualizar pesos, resumen y detalle
+                    return updateClasificadoData(idClasificado, request);
+                })
+                .compose(v -> {
+                    return Future.succeededFuture(Map.of(
+                            "success", true,
+                            "message", "Clasificado actualizado exitosamente",
+                            "idClasificado", idClasificado
+                    ));
+                });
+    }
+
+    private Future<Void> updateClasificadoData(String idClasificado, ClasificadoActualizarRequestDTO request) {
+        // Paso 1: Recolectar los IDs/claves que se deben mantener
+        List<Long> idsToKeep = new ArrayList<>();
+        List<String> calidadesToKeep = new ArrayList<>();
+        List<String> agrupacionesToKeep = new ArrayList<>();
+
+        if (request.getClasificadoPeso() != null) {
+            idsToKeep = request.getClasificadoPeso().stream()
+                    .map(ClasificadoPesoActualizarDTO::getIdPeso)
+                    .toList();
+        }
+
+        if (request.getClasificadoResumen() != null) {
+            calidadesToKeep = request.getClasificadoResumen().stream()
+                    .map(ClasificadoResumenActualizarDTO::getIdCalidad)
+                    .toList();
+        }
+
+        if (request.getClasificadoDetalle() != null) {
+            agrupacionesToKeep = request.getClasificadoDetalle().stream()
+                    .map(ClasificadoDetalleActualizarDTO::getIdAgrupacion)
+                    .toList();
+        }
+
+        // Paso 2: Eliminar registros que ya no están en la actualización
+        return CompositeFuture.all(
+                repository.deleteClasificadoPesoNotInList(idClasificado, idsToKeep),
+                repository.deleteClasificadoResumenNotInList(idClasificado, calidadesToKeep),
+                repository.deleteClasificadoDetalleNotInList(idClasificado, agrupacionesToKeep)
+        ).compose(v -> {
+            // Paso 3: Insertar o actualizar los registros enviados
+            List<Future<Void>> futures = new ArrayList<>();
+
+            // Actualizar CLASIFICADO_PESO
+            if (request.getClasificadoPeso() != null) {
+                for (ClasificadoPesoActualizarDTO pesoDTO : request.getClasificadoPeso()) {
+                    ClasificadoPeso peso = ClasificadoPeso.builder()
+                            .idPeso(pesoDTO.getIdPeso())
+                            .idClasificado(idClasificado)
+                            .idCalidad(pesoDTO.getIdCalidad())
+                            .pesoKg(pesoDTO.getPesoKg())
+                            .build();
+                    futures.add(repository.upsertClasificadoPeso(peso));
+                }
+            }
+
+            // Actualizar CLASIFICADO_RESUMEN
+            if (request.getClasificadoResumen() != null) {
+                for (ClasificadoResumenActualizarDTO resumenDTO : request.getClasificadoResumen()) {
+                    ClasificadoResumen resumen = ClasificadoResumen.builder()
+                            .idClasificado(idClasificado)
+                            .idCalidad(resumenDTO.getIdCalidad())
+                            .totalKg(resumenDTO.getTotalKg())
+                            .build();
+                    futures.add(repository.upsertClasificadoResumen(resumen));
+                }
+            }
+
+            // Actualizar CLASIFICADO_DETALLE
+            if (request.getClasificadoDetalle() != null) {
+                for (ClasificadoDetalleActualizarDTO detalleDTO : request.getClasificadoDetalle()) {
+                    ClasificadoDetalle detalle = ClasificadoDetalle.builder()
+                            .idClasificado(idClasificado)
+                            .idAgrupacion(detalleDTO.getIdAgrupacion())
+                            .totalKg(detalleDTO.getTotalKg())
+                            .precioKg(detalleDTO.getPrecioKg())
+                            .subtotalImporte(detalleDTO.getSubtotalImporte())
+                            .build();
+                    futures.add(repository.upsertClasificadoDetalle(detalle));
+                }
+            }
+
+            return CompositeFuture.all(new ArrayList<>(futures)).mapEmpty();
+        });
+    }
 }

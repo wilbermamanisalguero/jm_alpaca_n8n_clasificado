@@ -2,8 +2,8 @@ package com.pe.jm_alpaca_n8n_clasificado.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,22 +13,22 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClasificadoDTO {
+@Builder
+public class ClasificadoResponseDTO {
 
-    @JsonProperty("nombreArchivo")
-    private String nombreArchivo;
+    @JsonProperty("idClasificado")
+    private String idClasificado;
 
-    @JsonProperty("clasificador")
-    @NotNull(message = "El clasificador es requerido")
-    private String clasificador;
+    @JsonProperty("idClasificador")
+    private String idClasificador;
 
     @JsonProperty("fecha")
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate fecha;
 
+    @JsonProperty("importeTotal")
+    private BigDecimal importeTotal;
+
     @JsonProperty("observaciones")
     private String observaciones;
-
-    @JsonProperty("importe_total")
-    private BigDecimal importeTotal;
 }
