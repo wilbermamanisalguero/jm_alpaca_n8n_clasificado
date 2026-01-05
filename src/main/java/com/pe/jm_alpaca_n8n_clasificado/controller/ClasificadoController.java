@@ -1,17 +1,23 @@
 package com.pe.jm_alpaca_n8n_clasificado.controller;
 
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.pe.jm_alpaca_n8n_clasificado.dto.ClasificadoActualizarRequestDTO;
 import com.pe.jm_alpaca_n8n_clasificado.dto.ClasificadoRequestDTO;
 import com.pe.jm_alpaca_n8n_clasificado.dto.ConsultaClasificadoRequestDTO;
 import com.pe.jm_alpaca_n8n_clasificado.service.ClasificadoService;
+
 import io.vertx.core.Future;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/clasificado")
@@ -39,7 +45,7 @@ public class ClasificadoController {
                 if (Boolean.TRUE.equals(success)) {
                     completableFuture.complete(ResponseEntity.ok(result));
                 } else {
-                    completableFuture.complete(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result));
+                    completableFuture.complete(ResponseEntity.status(HttpStatus.ACCEPTED).body(result));
                 }
             } else {
                 Map<String, Object> errorResponse = Map.of(
