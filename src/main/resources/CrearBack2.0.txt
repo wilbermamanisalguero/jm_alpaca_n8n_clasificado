@@ -1,0 +1,179 @@
+{
+  "venta": {
+    "tipoVenta": "LIQUIDACION",
+    "rucCliente": "20100199743",
+    "cliente": "INCA TOPS S.A.",
+    "codigoFactura": null,
+    "fechaDespacho": "06/12/2022",
+    "rucVendedor": null,
+    "vendedor": null,
+    "facturaAnticipo": null,
+    "tipoMoneda": "SOLES",
+    "importeTotal": 30784.3,
+    "observacion": null,
+    "detalle": [
+      {
+        "producto": "HYO COLOR",
+        "tipoProducto": "BROSA",
+        "peso": 1238.75,
+        "descuento": 194.59,
+        "cantidad": 1044.16,
+        "unidadMedida": "UNIDAD",
+        "valorUnitario": 25.97,
+        "importeSubTotal": 15322.3
+      },
+      {
+        "producto": "HYO COLOR",
+        "tipoProducto": "BROSA",
+        "peso": 1277.75,
+        "descuento": 118.51,
+        "cantidad": 1159.24,
+        "unidadMedida": "UNIDAD",
+        "valorUnitario": 25.77,
+        "importeSubTotal": 15462
+      }
+    ],
+    "nombreArchivo": "20251228_075200.jpg"
+  }
+  
+
+Tercero, realizar para validar  guardar errores VENTA_ERROR_CARGA  
+
+
+    private void validarCoherenciaTotales(VentaDTO ventaDTO) {
+	
+        BigDecimal sumaSubtotales = ventaDTO.getDetalle().stream()
+                .map(DetalleVentaDTO::getImporteSubTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (sumaSubtotales.compareTo(ventaDTO.getImporteTotal()) != 0) {
+            throw new VentaException(
+                    String.format("Inconsistencia: suma detalles=%.2f, total declarado=%.2f",
+                            sumaSubtotales, ventaDTO.getImporteTotal())
+            );
+        }
+
+        for (DetalleVentaDTO detalle : ventaDTO.getDetalle()) {
+            BigDecimal descuento = detalle.getDescuento() != null ? detalle.getDescuento() : BigDecimal.ZERO;
+            BigDecimal subtotalCalculado = detalle.getValorUnitario()
+                    .multiply(new BigDecimal(detalle.getCantidad()))
+                    .subtract(descuento);
+
+            if (subtotalCalculado.compareTo(detalle.getImporteSubTotal()) != 0) {
+                throw new VentaException(
+                        String.format("Subtotal incorrecto para producto '%s'. Esperado: %.2f, Recibido: %.2f",
+                                detalle.getProducto(), subtotalCalculado, detalle.getImporteSubTotal())
+                );
+            }
+        }
+    }
+	
+
+	
+				
+		1. La suma de  pesos de detalle.total_kg * detalle.precio_kg debe ser igual a detalle.importeSubTotal		
+
+				VENTA_ERROR_CARGA
+					ID_VENTA=VENTA.ID_VENTA
+					CODIGO='ERROR_IMPORTE'
+					
+					ERROR_CARGA=json con datos de la calidad con error :  		    "detalle": [
+							  {
+								"producto": "HYO COLOR",
+								"tipoProducto": "BROSA",
+								"peso": 1238.75,
+								"descuento": 194.59,
+								"cantidad": 1044.16,
+								"unidadMedida": "UNIDAD",
+								"valorUnitario": 25.97,
+								"importeSubTotal": 15322.3
+							  },
+							  
+			logica del programa
+					for (DetalleVentaDTO detalle : ventaDTO.getDetalle()) {
+						BigDecimal descuento = detalle.getDescuento() != null ? detalle.getDescuento() : BigDecimal.ZERO;
+						BigDecimal subtotalCalculado = detalle.getValorUnitario()
+								.multiply(new BigDecimal(detalle.getCantidad()))
+								.subtract(descuento);
+
+						if (subtotalCalculado.compareTo(detalle.getImporteSubTotal()) != 0) {
+							throw new VentaException(
+									String.format("Subtotal incorrecto para producto '%s'. Esperado: %.2f, Recibido: %.2f",
+											detalle.getProducto(), subtotalCalculado, detalle.getImporteSubTotal())
+							);
+						}
+					}			
+
+
+		4. La suma de   detalle.importeSubTotal debe ser igual a venta.importeTotal
+				
+				VENTA_ERROR_CARGA
+					ID_VENTA=VENTA.ID_VENTA
+					CODIGO='ERROR_IMPORTE_TOTAL'
+					
+					ERROR_CARGA=json con datos de la calidad con error : 	    "detalle": [
+						  {
+							"producto": "HYO COLOR",
+							"tipoProducto": "BROSA",
+							"peso": 1238.75,
+							"descuento": 194.59,
+							"cantidad": 1044.16,
+							"unidadMedida": "UNIDAD",
+							"valorUnitario": 25.97,
+							"importeSubTotal": 15322.3
+						  },
+					  
+					 Y   
+				  
+					"venta": {
+						"nombreArchivo": ""
+						"importeTotal": 30784.3,				  
+		  
+		logica en el programa 
+		
+			BigDecimal sumaSubtotales = ventaDTO.getDetalle().stream()
+			.map(DetalleVentaDTO::getImporteSubTotal)
+			.reduce(BigDecimal.ZERO, BigDecimal::add);
+
+			if (sumaSubtotales.compareTo(ventaDTO.getImporteTotal()) != 0) {
+				throw new VentaException(
+						String.format("Inconsistencia: suma detalles=%.2f, total declarado=%.2f",
+								sumaSubtotales, ventaDTO.getImporteTotal())
+				);
+			}
+
+
+Cuarto, Tablas mysql:
+
+
+{
+    "message": "VENTA registrado con errores de validación",
+    "idVenta": "20251228_135619.jpg",
+    "success": false,
+    "errors": [
+        {
+            "codigo": "ERROR_PESO",
+            "errorCarga": "{\"BL-B\":{\"pesos\":[56,45,54,60,50,61,49,62,48,63,59,57,49,52,52,46,54,50,60,55,51,46],\"total_kg\":504}}"
+        },
+        {
+            "codigo": "ERROR_PESO",
+            "errorCarga": "{\"FS-B\":{\"pesos\":[64,59,51,49,42,35,36,52,48],\"total_kg\":336}}"
+        },
+        {
+            "codigo": "ERROR_PESO",
+            "errorCarga": "{\"FS-X\":{\"pesos\":[56,50,76,182],\"total_kg\":282}}"
+        },
+        {
+            "codigo": "ERROR_TOTAL_KG",
+            "errorCarga": "{\"VENTA_calidad\":{\"total_kg\":90},\"detalle\":{\"BL\":{\"total_kg\":504,\"componentes\":[\"BL-B\",\"BL-X\"]}}}"
+        },
+        {
+            "codigo": "ERROR_TOTAL_KG",
+            "errorCarga": "{\"VENTA_calidad\":{\"total_kg\":38},\"detalle\":{\"HZ\":{\"total_kg\":262,\"componentes\":[\"HZ-B\",\"HZ-X\",\"AG\"]}}}"
+        },
+        {
+            "codigo": "ERROR_IMPORTE",
+            "errorCarga": "{\"detalle\":{\"BL\":{\"total_kg\":504,\"componentes\":[\"BL-B\",\"BL-X\"],\"precio_kg\":0.8,\"importeSubTotal\":1203.2}}}"
+        }
+    ]
+}
