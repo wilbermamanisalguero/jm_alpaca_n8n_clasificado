@@ -241,6 +241,69 @@ public class ClasificadoService {
                 });
     }
 
+    public Future<Map<String, Object>> registrarPesos(RegistrarPesosRequestDTO request) {
+        String idClasificado = request.getClasificado().getNombreArchivo();
+
+        // Construir entidad Clasificado (solo con datos básicos, sin importe_total ni observaciones)
+        Clasificado clasificado = Clasificado.builder()
+                .idClasificado(idClasificado)
+                .idClasificador(request.getClasificado().getClasificador())
+                .fecha(request.getClasificado().getFecha())
+                .build();
+
+        // Insertar Clasificado
+        return repository.insertClasificado(clasificado)
+                .compose(v -> {
+                    // Insertar solo los pesos de calidad
+                    return savePesosData(idClasificado, request.getClasificadoCalidad());
+                })
+                .compose(v -> {
+                    return Future.succeededFuture(Map.of(
+                            "success", true,
+                            "message", "Pesos registrados exitosamente",
+                            "idClasificado", idClasificado
+                    ));
+                });
+    }
+
+    private Future<Void> savePesosData(String idClasificado, ClasificadoCalidadPesosDTO calidad) {
+        List<Future<Void>> futures = new ArrayList<>();
+
+        futures.addAll(savePesos(idClasificado, "ROYAL", calidad.getRoyal()));
+        futures.addAll(savePesos(idClasificado, "BL-B", calidad.getBlB()));
+        futures.addAll(savePesos(idClasificado, "BL-X", calidad.getBlX()));
+        futures.addAll(savePesos(idClasificado, "FS-B", calidad.getFsB()));
+        futures.addAll(savePesos(idClasificado, "FS-X", calidad.getFsX()));
+        futures.addAll(savePesos(idClasificado, "HZ-B", calidad.getHzB()));
+        futures.addAll(savePesos(idClasificado, "HZ-X", calidad.getHzX()));
+        futures.addAll(savePesos(idClasificado, "AG", calidad.getAg()));
+        futures.addAll(savePesos(idClasificado, "STD", calidad.getStd()));
+        futures.addAll(savePesos(idClasificado, "SURI-BL", calidad.getSuriBl()));
+        futures.addAll(savePesos(idClasificado, "SURI-FS", calidad.getSuriFs()));
+        futures.addAll(savePesos(idClasificado, "SURI-HZ", calidad.getSuriHz()));
+
+        return CompositeFuture.all(new ArrayList<>(futures)).mapEmpty();
+    }
+
+    private List<Future<Void>> savePesos(String idClasificado, String idCalidad, CalidadPesosDTO data) {
+        List<Future<Void>> futures = new ArrayList<>();
+
+        if (data != null && data.getPesos() != null) {
+            for (BigDecimal peso : data.getPesos()) {
+                if (peso != null) {
+                    ClasificadoPeso pesoEntity = ClasificadoPeso.builder()
+                            .idClasificado(idClasificado)
+                            .idCalidad(idCalidad)
+                            .pesoKg(peso)
+                            .build();
+                    futures.add(repository.insertClasificadoPeso(pesoEntity));
+                }
+            }
+        }
+
+        return futures;
+    }
+
     public Future<Map<String, Object>> actualizarClasificado(ClasificadoActualizarRequestDTO request) {
         // Validar datos
         List<ActualizacionValidationError> validationErrors = validationService.validateActualizacion(request);
