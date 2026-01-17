@@ -1,0 +1,157 @@
+==================================================================================
+
+Analiza la imagen proporcionada y devuelve ÚNICAMENTE un JSON válido.
+NO incluyas texto adicional.
+NO Markdown.
+NO explicaciones.
+NO comentarios.
+
+OBJETIVO:
+Extraer un CLASIFICADO (cabecera + pesos ) desde una hoja escrita a mano.
+
+==================================================
+REGLAS CRÍTICAS (OBLIGATORIAS)
+==================================================
+
+1) La respuesta DEBE ser exclusivamente un JSON válido.
+
+2) Si un dato NO aparece de forma clara y explícita → su valor DEBE ser null.
+
+3) PROHIBIDO generar valores por defecto (0, [], "", fechas, precios, etc.).
+
+4) PROHIBIDO deducir o inventar:
+   - clasificador
+   - calidad
+
+
+5) SOLO se permite el mapeo cuando el TEXTO COINCIDE EXACTAMENTE con los nombres definidos.
+
+6) Si un cálculo depende de un dato inexistente → el resultado DEBE ser null.
+
+7) No corrijas errores humanos del manuscrito.
+
+8) ORDEN OBLIGATORIO DE PESOS:
+   Para cada CALIDAD, el array "pesos" DEBE respetar el orden exacto de lectura visual:
+   - Primero: de ARRIBA hacia ABAJO dentro de la misma columna (misma calidad).
+   - Si una misma calidad tiene múltiples bloques visuales:
+     concatenar los bloques en el orden en que aparecen
+     (de IZQUIERDA a DERECHA y de ARRIBA hacia ABAJO).
+   - PROHIBIDO ordenar por valor, agrupar o reacomodar.
+   Ejemplo: si visualmente se lee 50, luego 25, luego 20, luego 10,
+   entonces → "pesos": [50,25,20,10].
+
+9) BLOQUES SEPARADOS (MISMA CALIDAD):
+   Si una misma CALIDAD aparece en más de un bloque visual,
+   TODOS los valores visibles DEBEN ser incluidos en la MISMA lista,
+   respetando estrictamente el orden de lectura.
+
+10) CONTINUIDAD VERTICAL:
+    Todo valor numérico que esté VISUALMENTE ALINEADO
+    debajo del encabezado de una CALIDAD
+    DEBE considerarse parte de esa CALIDAD,
+    incluso si existe:
+    - una línea horizontal
+    - un espacio en blanco
+    - un salto visual
+
+11) LÍNEAS NO ROMPEN ORDEN:
+    Las líneas, rayas o separadores dibujados a mano
+    NO indican cambio de calidad ni reinicio de lista.
+    NO deben usarse para reordenar ni reinterpretar los pesos.
+
+12) PROHIBIDO REORDENAR:
+    Está TERMINANTEMENTE PROHIBIDO:
+    - ordenar por valor
+    - reagrupar
+    - fusionar subconjuntos
+    - eliminar repeticiones
+    - reinterpretar listas
+    
+13) NO OMISIÓN EN COLUMNAS CONTINUAS:
+    Si una columna contiene una secuencia continua de valores numéricos,
+    NO se deben omitir valores intermedios.
+    Si un número es parcialmente legible pero reconocible como número,
+    DEBE incluirse tal como se percibe visualmente.
+
+==================================================
+PASO 1: IDENTIFICAR CABECERA
+==================================================
+
+CLASIFICADOR:
+Reconocer SOLO si aparece explícitamente:
+- ROGER
+- YOLA
+- ISIDORA
+
+FECHA:
+- dd-mm-yy o dd-m-yy → dd/mm/yyyy
+- Año de 2 dígitos → 20yy
+
+OBSERVACIONES:
+- SOLO si hay texto descriptivo adicional
+
+==================================================
+PASO 2: IDENTIFICAR COLUMNAS DE CALIDAD
+==================================================
+
+Reconocer SOLO las siguientes calidades EXACTAS:
+
+HUACAYO:
+- ROYAL
+- BL-B
+- BL-X
+- FS-B
+- FS-X
+- HZ-B
+- HZ-X
+- AG
+- STD
+
+SURI:
+- SURI-BL
+- SURI-FS
+- SURI-HZ
+
+==================================================
+PASO 3: EXTRAER PESOS
+==================================================
+
+Para cada CALIDAD:
+
+- Extraer TODOS los valores numéricos visibles
+- Incluir valores aunque estén en bloques separados
+- Mantener el orden visual exacto de lectura
+- NO eliminar duplicados
+- NO corregir
+- NO completar
+- PROHIBIDO ordenar por valor (ascendente o descendente)
+
+Ejemplo:
+"pesos": [50,45,54,46,56,52]
+
+==================================================
+FORMATO DE SALIDA (OBLIGATORIO)
+==================================================
+
+{
+  "clasificado": {    
+    "nombreArchivo": null,
+    "clasificador": null,
+    "fecha": null
+  },
+  "clasificado_calidad": {
+    "ROYAL": { "pesos": [] },
+    "BL-B": { "pesos": [] },
+    "BL-X": { "pesos": [] },
+    "FS-B": { "pesos": [] },
+    "FS-X": { "pesos": [] },
+    "HZ-B": { "pesos": [] },
+    "HZ-X": { "pesos": [] },
+    "AG": { "pesos": [] },
+    "STD": { "pesos": [] },
+    "SURI-BL": { "pesos": [] },
+    "SURI-FS": { "pesos": [] },
+    "SURI-HZ": { "pesos": [] }
+  }
+}
+
