@@ -251,17 +251,27 @@ public class ClasificadoService {
                 .fecha(request.getClasificado().getFecha())
                 .build();
 
-        // Insertar Clasificado
-        return repository.insertClasificado(clasificado)
+        // Primero eliminar registros existentes, luego insertar nuevos
+        return repository.deleteClasificadoCompleto(idClasificado)
+                .compose(v -> {
+                    // Insertar Clasificado
+                    return repository.insertClasificado(clasificado);
+                })
                 .compose(v -> {
                     // Insertar solo los pesos de calidad
                     return savePesosData(idClasificado, request.getClasificadoCalidad());
                 })
                 .compose(v -> {
+                    // Llamar al procedimiento almacenado para procesar el detalle
+                    return repository.callProcesarClasificadoDetalle(idClasificado);
+                })
+                .compose(spResult -> {
                     return Future.succeededFuture(Map.of(
                             "success", true,
                             "message", "Pesos registrados exitosamente",
-                            "idClasificado", idClasificado
+                            "idClasificado", idClasificado,
+                            "spCodigo", spResult.getCodigo(),
+                            "spDescripcion", spResult.getDescripcion()
                     ));
                 });
     }

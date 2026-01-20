@@ -1,5 +1,6 @@
 package com.pe.jm_alpaca_n8n_clasificado.repository;
 
+import com.pe.jm_alpaca_n8n_clasificado.dto.SpResultDTO;
 import com.pe.jm_alpaca_n8n_clasificado.entity.*;
 import io.vertx.core.Future;
 import io.vertx.mysqlclient.MySQLPool;
@@ -361,5 +362,39 @@ public class ClasificadoRepository {
         return client.preparedQuery(query)
                 .execute(params)
                 .mapEmpty();
+    }
+
+    /**
+     * Elimina todos los registros relacionados con un clasificado en el orden correcto
+     * (primero las tablas hijas, luego la tabla padre)
+     */
+    public Future<Void> deleteClasificadoCompleto(String idClasificado) {
+        // Eliminar en orden: primero tablas dependientes, luego la principal
+        return client.preparedQuery("DELETE FROM CLASIFICADO_ERROR_CARGA WHERE ID_CLASIFICADO = ?")
+                .execute(Tuple.of(idClasificado))
+                .compose(v -> client.preparedQuery("DELETE FROM CLASIFICADO_DETALLE WHERE ID_CLASIFICADO = ?")
+                        .execute(Tuple.of(idClasificado)))
+                .compose(v -> client.preparedQuery("DELETE FROM CLASIFICADO_PESO WHERE ID_CLASIFICADO = ?")
+                        .execute(Tuple.of(idClasificado)))
+                .compose(v -> client.preparedQuery("DELETE FROM CLASIFICADO_RESUMEN WHERE ID_CLASIFICADO = ?")
+                        .execute(Tuple.of(idClasificado)))
+                .compose(v -> client.preparedQuery("DELETE FROM CLASIFICADO WHERE ID_CLASIFICADO = ?")
+                        .execute(Tuple.of(idClasificado)))
+                .mapEmpty();
+    }
+
+    public Future<SpResultDTO> callProcesarClasificadoDetalle(String idClasificado) {
+        String query = "CALL SP_PROCESAR_CLASIFICADO_DETALLE(?, @p_codigo, @p_descripcion)";
+
+        return client.preparedQuery(query)
+                .execute(Tuple.of(idClasificado))
+                .compose(v -> client.query("SELECT @p_codigo AS codigo, @p_descripcion AS descripcion").execute())
+                .map(rows -> {
+                    Row row = rows.iterator().next();
+                    return SpResultDTO.builder()
+                            .codigo(row.getString("codigo"))
+                            .descripcion(row.getString("descripcion"))
+                            .build();
+                });
     }
 }
