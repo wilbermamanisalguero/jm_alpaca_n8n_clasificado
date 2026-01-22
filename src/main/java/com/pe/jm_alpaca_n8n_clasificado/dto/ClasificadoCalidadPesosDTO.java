@@ -45,4 +45,7 @@ public class ClasificadoCalidadPesosDTO {
 
     @JsonProperty("SURI-HZ")
     private CalidadPesosDTO suriHz;
+
+    @JsonProperty("SURI-STD")
+    private CalidadPesosDTO suriStd;
 }

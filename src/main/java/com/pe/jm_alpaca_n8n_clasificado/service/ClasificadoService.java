@@ -8,9 +8,13 @@ import io.vertx.core.Future;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ClasificadoService {
@@ -241,6 +245,17 @@ public class ClasificadoService {
                 });
     }
 
+    // Orden fijo para calidades (clasificadoResumen y clasificado_pesos)
+    private static final List<String> ORDEN_CALIDADES = Arrays.asList(
+            "ROYAL", "BL-B", "BL-X", "FS-B", "FS-X", "HZ-B", "HZ-X", "AG", "STD",
+            "SURI-BL", "SURI-FS", "SURI-HZ", "SURI-STD"
+    );
+
+    // Orden fijo para agrupaciones (clasificadoDetalle)
+    private static final List<String> ORDEN_AGRUPACIONES = Arrays.asList(
+            "ROYAL", "BL", "FS", "HZ", "STD", "SURI", "SURI-HZ", "SURI-STD"
+    );
+
     public Future<Map<String, Object>> registrarPesos(RegistrarPesosRequestDTO request) {
         String idClasificado = request.getClasificado().getNombreArchivo();
 
@@ -266,14 +281,115 @@ public class ClasificadoService {
                     return repository.callProcesarClasificadoDetalle(idClasificado);
                 })
                 .compose(spResult -> {
-                    return Future.succeededFuture(Map.of(
-                            "success", true,
-                            "message", "Pesos registrados exitosamente",
-                            "idClasificado", idClasificado,
-                            "spCodigo", spResult.getCodigo(),
-                            "spDescripcion", spResult.getDescripcion()
-                    ));
+                    // Consultar todos los datos procesados de la BD
+                    return CompositeFuture.all(
+                            repository.getClasificadoById(idClasificado),
+                            repository.getPesosByClasificadoId(idClasificado),
+                            repository.getResumenByClasificadoId(idClasificado),
+                            repository.getDetalleByClasificadoId(idClasificado)
+                    ).map(compositeFuture -> {
+                        Clasificado clasificadoDB = compositeFuture.resultAt(0);
+                        List<ClasificadoPeso> pesos = compositeFuture.resultAt(1);
+                        List<ClasificadoResumen> resumenes = compositeFuture.resultAt(2);
+                        List<ClasificadoDetalle> detalles = compositeFuture.resultAt(3);
+
+                        // Construir respuesta
+                        return buildRegistrarPesosResponse(
+                                idClasificado, spResult, clasificadoDB, pesos, resumenes, detalles
+                        );
+                    });
                 });
+    }
+
+    private Map<String, Object> buildRegistrarPesosResponse(
+            String idClasificado,
+            SpResultDTO spResult,
+            Clasificado clasificadoDB,
+            List<ClasificadoPeso> pesos,
+            List<ClasificadoResumen> resumenes,
+            List<ClasificadoDetalle> detalles) {
+
+        // 1. Construir clasificado DTO
+        ClasificadoResponseDTO clasificadoDTO = ClasificadoResponseDTO.builder()
+                .idClasificado(clasificadoDB.getIdClasificado())
+                .idClasificador(clasificadoDB.getIdClasificador())
+                .fecha(clasificadoDB.getFecha())
+                .importeTotal(clasificadoDB.getImporteTotal())
+                .build();
+
+        // 2. Construir clasificadoResumen como Map<String, BigDecimal> ordenado y filtrado (solo totalKg > 0)
+        Map<String, BigDecimal> resumenMapOriginal = resumenes.stream()
+                .collect(Collectors.toMap(
+                        ClasificadoResumen::getIdCalidad,
+                        ClasificadoResumen::getTotalKg
+                ));
+
+        Map<String, BigDecimal> clasificadoResumenMap = new LinkedHashMap<>();
+        for (String calidad : ORDEN_CALIDADES) {
+            if (resumenMapOriginal.containsKey(calidad) &&
+                    resumenMapOriginal.get(calidad) != null &&
+                    resumenMapOriginal.get(calidad).compareTo(BigDecimal.ZERO) > 0) {
+                clasificadoResumenMap.put(calidad, resumenMapOriginal.get(calidad));
+            }
+        }
+
+        // 3. Construir clasificadoDetalle como List<List<Object>> ordenado y filtrado (solo subtotalImporte > 0)
+        Map<String, ClasificadoDetalle> detalleMap = detalles.stream()
+                .collect(Collectors.toMap(
+                        ClasificadoDetalle::getIdAgrupacion,
+                        d -> d
+                ));
+
+        List<List<Object>> clasificadoDetalleList = new ArrayList<>();
+        for (String agrupacion : ORDEN_AGRUPACIONES) {
+            if (detalleMap.containsKey(agrupacion) &&
+                    detalleMap.get(agrupacion).getSubtotalImporte() != null &&
+                    detalleMap.get(agrupacion).getSubtotalImporte().compareTo(BigDecimal.ZERO) > 0) {
+                ClasificadoDetalle d = detalleMap.get(agrupacion);
+                // Formato: [idAgrupacion, totalKg, precioKg, subtotalImporte]
+                clasificadoDetalleList.add(Arrays.asList(
+                        agrupacion,
+                        d.getTotalKg(),
+                        d.getPrecioKg(),
+                        d.getSubtotalImporte()
+                ));
+            }
+        }
+
+        // 4. Construir clasificado_pesos como Map<String, List<BigDecimal>> ordenado y filtrado
+        Map<String, List<BigDecimal>> pesosAgrupados = pesos.stream()
+                .collect(Collectors.groupingBy(
+                        ClasificadoPeso::getIdCalidad,
+                        Collectors.mapping(ClasificadoPeso::getPesoKg, Collectors.toList())
+                ));
+
+        Map<String, List<BigDecimal>> clasificadoPesosMap = new LinkedHashMap<>();
+        for (String calidad : ORDEN_CALIDADES) {
+            List<BigDecimal> pesosList = pesosAgrupados.getOrDefault(calidad, new ArrayList<>());
+            // Solo incluir si tiene pesos (lista no vacía)
+            if (!pesosList.isEmpty()) {
+                clasificadoPesosMap.put(calidad, pesosList);
+            }
+        }
+
+        // 5. Construir objeto data
+        RegistrarPesosResponseDTO data = RegistrarPesosResponseDTO.builder()
+                .clasificado(clasificadoDTO)
+                .clasificadoResumen(clasificadoResumenMap)
+                .clasificadoDetalle(clasificadoDetalleList)
+                .clasificadoPesos(clasificadoPesosMap)
+                .build();
+
+        // 6. Construir respuesta final
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("idClasificado", idClasificado);
+        response.put("spDescripcion", spResult.getDescripcion());
+        response.put("spCodigo", spResult.getCodigo());
+        response.put("message", "Pesos registrados exitosamente");
+        response.put("success", true);
+        response.put("data", data);
+
+        return response;
     }
 
     private Future<Void> savePesosData(String idClasificado, ClasificadoCalidadPesosDTO calidad) {
@@ -291,6 +407,7 @@ public class ClasificadoService {
         futures.addAll(savePesos(idClasificado, "SURI-BL", calidad.getSuriBl()));
         futures.addAll(savePesos(idClasificado, "SURI-FS", calidad.getSuriFs()));
         futures.addAll(savePesos(idClasificado, "SURI-HZ", calidad.getSuriHz()));
+        futures.addAll(savePesos(idClasificado, "SURI-STD", calidad.getSuriStd()));
 
         return CompositeFuture.all(new ArrayList<>(futures)).mapEmpty();
     }
