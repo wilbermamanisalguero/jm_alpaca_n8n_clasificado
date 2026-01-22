@@ -295,7 +295,7 @@ public class ClasificadoService {
 
                         // Construir respuesta
                         return buildRegistrarPesosResponse(
-                                idClasificado, spResult, clasificadoDB, pesos, resumenes, detalles
+                                idClasificado, spResult, clasificadoDB, pesos, resumenes, detalles, request
                         );
                     });
                 });
@@ -307,7 +307,8 @@ public class ClasificadoService {
             Clasificado clasificadoDB,
             List<ClasificadoPeso> pesos,
             List<ClasificadoResumen> resumenes,
-            List<ClasificadoDetalle> detalles) {
+            List<ClasificadoDetalle> detalles,
+            RegistrarPesosRequestDTO request) {
 
         // 1. Construir clasificado DTO
         ClasificadoResponseDTO clasificadoDTO = ClasificadoResponseDTO.builder()
@@ -380,7 +381,10 @@ public class ClasificadoService {
                 .clasificadoPesos(clasificadoPesosMap)
                 .build();
 
-        // 6. Construir respuesta final
+        // 6. Construir sección parametro con datos del request (filtrado)
+        Map<String, Object> parametro = buildParametroSection(request);
+
+        // 7. Construir respuesta final
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("idClasificado", idClasificado);
         response.put("spDescripcion", spResult.getDescripcion());
@@ -388,8 +392,50 @@ public class ClasificadoService {
         response.put("message", "Pesos registrados exitosamente");
         response.put("success", true);
         response.put("data", data);
+        response.put("parametro", parametro);
 
         return response;
+    }
+
+    private Map<String, Object> buildParametroSection(RegistrarPesosRequestDTO request) {
+        Map<String, Object> parametro = new LinkedHashMap<>();
+
+        // Construir sección clasificado
+        Map<String, Object> clasificadoInfo = new LinkedHashMap<>();
+        clasificadoInfo.put("nombreArchivo", request.getClasificado().getNombreArchivo());
+        clasificadoInfo.put("clasificador", request.getClasificado().getClasificador());
+        clasificadoInfo.put("fecha", request.getClasificado().getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        parametro.put("clasificado", clasificadoInfo);
+
+        // Construir sección clasificado_calidad (solo calidades con pesos > 0)
+        Map<String, Object> clasificadoCalidad = new LinkedHashMap<>();
+        ClasificadoCalidadPesosDTO calidad = request.getClasificadoCalidad();
+
+        addCalidadIfHasPesos(clasificadoCalidad, "ROYAL", calidad.getRoyal());
+        addCalidadIfHasPesos(clasificadoCalidad, "BL-B", calidad.getBlB());
+        addCalidadIfHasPesos(clasificadoCalidad, "BL-X", calidad.getBlX());
+        addCalidadIfHasPesos(clasificadoCalidad, "FS-B", calidad.getFsB());
+        addCalidadIfHasPesos(clasificadoCalidad, "FS-X", calidad.getFsX());
+        addCalidadIfHasPesos(clasificadoCalidad, "HZ-B", calidad.getHzB());
+        addCalidadIfHasPesos(clasificadoCalidad, "HZ-X", calidad.getHzX());
+        addCalidadIfHasPesos(clasificadoCalidad, "AG", calidad.getAg());
+        addCalidadIfHasPesos(clasificadoCalidad, "STD", calidad.getStd());
+        addCalidadIfHasPesos(clasificadoCalidad, "SURI-BL", calidad.getSuriBl());
+        addCalidadIfHasPesos(clasificadoCalidad, "SURI-FS", calidad.getSuriFs());
+        addCalidadIfHasPesos(clasificadoCalidad, "SURI-HZ", calidad.getSuriHz());
+        addCalidadIfHasPesos(clasificadoCalidad, "SURI-STD", calidad.getSuriStd());
+
+        parametro.put("clasificado_calidad", clasificadoCalidad);
+
+        return parametro;
+    }
+
+    private void addCalidadIfHasPesos(Map<String, Object> map, String calidad, CalidadPesosDTO data) {
+        if (data != null && data.getPesos() != null && !data.getPesos().isEmpty()) {
+            Map<String, Object> calidadData = new LinkedHashMap<>();
+            calidadData.put("pesos", data.getPesos());
+            map.put(calidad, calidadData);
+        }
     }
 
     private Future<Void> savePesosData(String idClasificado, ClasificadoCalidadPesosDTO calidad) {
