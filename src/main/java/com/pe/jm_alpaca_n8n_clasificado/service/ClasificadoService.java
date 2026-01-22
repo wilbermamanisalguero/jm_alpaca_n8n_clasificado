@@ -52,7 +52,7 @@ public class ClasificadoService {
                     return Future.succeededFuture();
                 })
                 .compose(v -> {
-                    // Insertar datos de calidad, resumen y detalle
+                    // Insertar dados de calidad, resumen y detalle
                     return saveClasificadoData(idClasificado, request);
                 })
                 .compose(v -> {
@@ -404,7 +404,11 @@ public class ClasificadoService {
         Map<String, Object> clasificadoInfo = new LinkedHashMap<>();
         clasificadoInfo.put("nombreArchivo", request.getClasificado().getNombreArchivo());
         clasificadoInfo.put("clasificador", request.getClasificado().getClasificador());
-        clasificadoInfo.put("fecha", request.getClasificado().getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        if (request.getClasificado().getFecha() != null) {
+            clasificadoInfo.put("fecha", request.getClasificado().getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        } else {
+            clasificadoInfo.put("fecha", null);
+        }
         parametro.put("clasificado", clasificadoInfo);
 
         // Construir sección clasificado_calidad (solo calidades con pesos > 0)

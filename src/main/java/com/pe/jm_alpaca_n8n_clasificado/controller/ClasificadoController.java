@@ -38,7 +38,7 @@ public class ClasificadoController {
 
         Future<Map<String, Object>> future = clasificadoService.registrarPesos(request);
 
-        future.onComplete(ar -> {
+        future.onComplete(ar -> { 
             if (ar.succeeded()) {
                 Map<String, Object> result = ar.result();
                 Boolean success = (Boolean) result.get("success");
