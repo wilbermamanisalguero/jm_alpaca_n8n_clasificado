@@ -22,4 +22,7 @@ public class ClasificadoPesosInfoDTO {
     @JsonProperty("fecha")
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate fecha;
+
+    @JsonProperty("validado")
+    private Integer validado;
 }

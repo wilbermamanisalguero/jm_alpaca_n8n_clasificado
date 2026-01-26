@@ -264,6 +264,7 @@ public class ClasificadoService {
                 .idClasificado(idClasificado)
                 .idClasificador(request.getClasificado().getClasificador())
                 .fecha(request.getClasificado().getFecha())
+                .validado(request.getClasificado().getValidado())
                 .build();
 
         // Primero eliminar registros existentes, luego insertar nuevos
@@ -316,6 +317,7 @@ public class ClasificadoService {
                 .idClasificador(clasificadoDB.getIdClasificador())
                 .fecha(clasificadoDB.getFecha())
                 .importeTotal(clasificadoDB.getImporteTotal())
+                .validado(clasificadoDB.getValidado())
                 .build();
 
         // 2. Construir clasificadoResumen como Map<String, BigDecimal> ordenado y filtrado (solo totalKg > 0)
@@ -409,6 +411,9 @@ public class ClasificadoService {
         } else {
             clasificadoInfo.put("fecha", null);
         }
+        // Si validado viene null o no viene, devolver 1 por defecto
+        Integer validadoValue = request.getClasificado().getValidado();
+        clasificadoInfo.put("validado", validadoValue != null ? validadoValue : 1);
         parametro.put("clasificado", clasificadoInfo);
 
         // Construir sección clasificado_calidad (solo calidades con pesos > 0)

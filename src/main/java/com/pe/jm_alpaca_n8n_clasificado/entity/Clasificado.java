@@ -18,4 +18,5 @@ public class Clasificado {
     private LocalDate fecha;
     private BigDecimal importeTotal;
     private String observaciones;
+    private Integer validado;
 }

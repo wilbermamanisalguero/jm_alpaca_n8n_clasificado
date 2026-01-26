@@ -31,4 +31,7 @@ public class ClasificadoResponseDTO {
 
     @JsonProperty("observaciones")
     private String observaciones;
+
+    @JsonProperty("validado")
+    private Integer validado;
 }

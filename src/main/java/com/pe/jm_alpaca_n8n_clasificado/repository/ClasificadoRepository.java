@@ -22,15 +22,16 @@ public class ClasificadoRepository {
     }
 
     public Future<Void> insertClasificado(Clasificado clasificado) {
-        String query = "INSERT INTO CLASIFICADO (ID_CLASIFICADO, ID_CLASIFICADOR, FECHA, IMPORTE_TOTAL, OBSERVACIONES) " +
-                       "VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT INTO CLASIFICADO (ID_CLASIFICADO, ID_CLASIFICADOR, FECHA, IMPORTE_TOTAL, OBSERVACIONES, VALIDADO) " +
+                       "VALUES (?, ?, ?, ?, ?, ?)";
 
         Tuple params = Tuple.of(
             clasificado.getIdClasificado(),
             clasificado.getIdClasificador(),
             clasificado.getFecha(),
             clasificado.getImporteTotal(),
-            clasificado.getObservaciones()
+            clasificado.getObservaciones(),
+            clasificado.getValidado()
         );
 
         return client.preparedQuery(query)
@@ -123,7 +124,7 @@ public class ClasificadoRepository {
     }
 
     public Future<Clasificado> getClasificadoById(String idClasificado) {
-        String query = "SELECT ID_CLASIFICADO, ID_CLASIFICADOR, FECHA, IMPORTE_TOTAL, OBSERVACIONES " +
+        String query = "SELECT ID_CLASIFICADO, ID_CLASIFICADOR, FECHA, IMPORTE_TOTAL, OBSERVACIONES, VALIDADO " +
                        "FROM CLASIFICADO WHERE ID_CLASIFICADO = ?";
 
         return client.preparedQuery(query)
@@ -139,6 +140,7 @@ public class ClasificadoRepository {
                             .fecha(row.getLocalDate("FECHA"))
                             .importeTotal(row.getBigDecimal("IMPORTE_TOTAL"))
                             .observaciones(row.getString("OBSERVACIONES"))
+                            .validado(row.getInteger("VALIDADO"))
                             .build();
                 });
     }
@@ -204,7 +206,7 @@ public class ClasificadoRepository {
     }
 
     public Future<Void> updateClasificado(Clasificado clasificado) {
-        String query = "UPDATE CLASIFICADO SET ID_CLASIFICADOR = ?, FECHA = ?, IMPORTE_TOTAL = ?, OBSERVACIONES = ? " +
+        String query = "UPDATE CLASIFICADO SET ID_CLASIFICADOR = ?, FECHA = ?, IMPORTE_TOTAL = ?, OBSERVACIONES = ?, VALIDADO = ? " +
                        "WHERE ID_CLASIFICADO = ?";
 
         Tuple params = Tuple.of(
@@ -212,6 +214,7 @@ public class ClasificadoRepository {
             clasificado.getFecha(),
             clasificado.getImporteTotal(),
             clasificado.getObservaciones(),
+            clasificado.getValidado(),
             clasificado.getIdClasificado()
         );
 
